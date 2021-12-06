@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/base_root_page"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:id="@+id/header_box_sft"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#414F87"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/sft_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-black"
+            android:text="@string/app_name"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/sft_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#364068"
+        android:orientation="vertical"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp">
+
+        <EditText
+            android:id="@+id/url_edit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="#414F87"
+            android:backgroundTint="#414F87"
+            android:backgroundTintMode="src_in"
+            android:fontFamily="sans-serif-black"
+            android:hint="URL"
+            android:inputType="text"
+            android:minHeight="48dp"
+            android:padding="10dp"
+            android:singleLine="true"
+            android:textColor="#ADBEFF"
+            android:textColorHint="#68ADBEFF" />
+
+        <Switch
+            android:id="@+id/switch_proxy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="#414F87"
+            android:fontFamily="sans-serif-black"
+            android:minHeight="48dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="20dp"
+            android:text="Use proxy"
+            android:textColor="#ADBEFF"
+            tools:ignore="TextContrastCheck" />
+
+        <LinearLayout
+            android:id="@+id/bots_stats_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="15dp">
+
+            <TextView
+                android:id="@+id/title_bots_count"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="right"
+                android:text="Bots count:"
+                android:textColor="#ADBEFF" />
+
+            <TextView
+                android:id="@+id/bots_count"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-black"
+                android:gravity="left"
+                android:paddingLeft="10dp"
+                android:text="0"
+                android:textColor="#ADBEFF" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bots_count_box"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="#414F87"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <TextView
+                android:id="@+id/title_bots"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="0"
+                android:fontFamily="sans-serif-black"
+                android:paddingRight="8dp"
+                android:text="Bots"
+                android:textColor="#ADBEFF" />
+
+            <SeekBar
+                android:id="@+id/bots_count_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="25000"
+                android:progress="100" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/run_cbtn"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_margin="50dp"
+            android:background="#414F87"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="0dp">
+
+            <TextView
+                android:id="@+id/run_cbtn_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="0dp"
+                android:text="RUN"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textView8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:gravity="center"
+            android:text="ChuckerViews © 2021\nby cds4r &amp; kent"
+            android:textColor="#B1CCFB" />
+
+    </LinearLayout>
+
+</LinearLayout>
