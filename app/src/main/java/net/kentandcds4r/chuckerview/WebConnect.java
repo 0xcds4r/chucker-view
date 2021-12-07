@@ -4,12 +4,16 @@ import android.app.Activity;
 import android.os.Handler;
 import android.os.HandlerThread;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 public class WebConnect
 {
@@ -40,7 +44,10 @@ public class WebConnect
         g_host = host;
         g_port = port;
         g_iConnectionTimeout = iConnectionTimeout;
-        g_proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+
+        if(useProxy) {
+            g_proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+        }
 
         // flags
         if(request <= 0) {
@@ -49,10 +56,13 @@ public class WebConnect
         else if(request == 1) {
             sendPostRequest();
         }
-        else if(request >= 2)
+        else if(request == 2)
         {
             sendGetRequest();
             sendPostRequest();
+        }
+        else if(request == 5) {
+            sendTestRequest();
         }
     }
 
@@ -66,6 +76,30 @@ public class WebConnect
         if(g_httpURLConnectionPost != null) {
             g_httpURLConnectionPost.disconnect();
             g_httpURLConnectionPost = null;
+        }
+    }
+
+    public void sendTestRequest()
+    {
+        System.out.println("Sending test request..");
+        String proxyHost = g_host;
+        int proxyPort = g_port;
+        InetSocketAddress proxyAddr = new InetSocketAddress(proxyHost, proxyPort);
+        Proxy proxy = new Proxy(Proxy.Type.SOCKS, proxyAddr);
+
+        HttpURLConnection urlConnection = null;
+        URL request = null;
+        try {
+            System.out.println("Sending test request suc");
+            request = new URL(g_url);
+            urlConnection = (HttpURLConnection) request.openConnection(proxy);
+            urlConnection.setDoInput(true);
+            urlConnection.setConnectTimeout(36000);
+            urlConnection.setReadTimeout(44000);
+            //urlConnection.connect();
+        } catch (IOException e) {
+            System.out.println("Sending test request err");
+            e.printStackTrace();
         }
     }
 
@@ -88,10 +122,6 @@ public class WebConnect
             final String str2 = str;
             g_handler.post(() -> {
                 try {
-                    if(g_httpURLConnectionGet != null) {
-                        g_httpURLConnectionGet = null;
-                    }
-
                     if(g_useProxy && g_proxy != null)
                     {
                         g_httpURLConnectionGet = (HttpURLConnection) new URL(str2).openConnection(g_proxy);
@@ -102,14 +132,16 @@ public class WebConnect
                     }
 
                     g_httpURLConnectionGet.setRequestMethod("GET");
-                    g_httpURLConnectionGet.setConnectTimeout(g_iConnectionTimeout);
+                    g_httpURLConnectionGet.setDoInput(true);
+                    g_httpURLConnectionGet.setConnectTimeout(5000);
+                    g_httpURLConnectionGet.setReadTimeout(5000);
+                    g_httpURLConnectionGet.setUseCaches(false);
                     g_httpURLConnectionGet.connect();
                     g_httpURLConnectionGet.getResponseCode();
 
-                    System.out.println("Get request accepted!");
+                    System.out.println("Connected!");
                 } catch (Exception e) {
-                    System.out.println("Get request declined!");
-                    e.printStackTrace();
+                    System.out.println("Connection failed! Message: " + e.getMessage() + " Cause: " + e.getCause());
                 }
             });
         }
@@ -134,10 +166,6 @@ public class WebConnect
             final String str2 = str;
             g_handler.post(() -> {
                 try {
-                    if(g_httpURLConnectionGet != null) {
-                        g_httpURLConnectionGet = null;
-                    }
-
                     if(g_useProxy && g_proxy != null)
                     {
                         g_httpURLConnectionPost = (HttpURLConnection) new URL(str2).openConnection(g_proxy);
@@ -148,16 +176,20 @@ public class WebConnect
                     }
 
                     g_httpURLConnectionPost.setRequestMethod("POST");
-                    g_httpURLConnectionPost.setConnectTimeout(g_iConnectionTimeout);
+                    g_httpURLConnectionPost.setDoInput(true);
+                    g_httpURLConnectionPost.setConnectTimeout(5000);
+                    g_httpURLConnectionPost.setReadTimeout(5000);
+                    g_httpURLConnectionPost.setUseCaches(false);
                     g_httpURLConnectionPost.connect();
                     g_httpURLConnectionPost.getResponseCode();
 
-                    System.out.println("Post request accepted!");
+                    System.out.println("Connected!");
                 } catch (Exception e) {
-                    System.out.println("Post request declined!");
-                    e.printStackTrace();
+                    System.out.println("Connection failed! Message: " + e.getMessage() + " Cause: " + e.getCause());
                 }
             });
         }
     }
+
+
 }
