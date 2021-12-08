@@ -6,6 +6,7 @@ import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.EditText;
@@ -30,31 +31,6 @@ import java.util.Properties;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-
-    // Used to load the 'chuckerview' library on application startup.
-    static {
-        System.loadLibrary("chuckerview");
-    }
-
-    private String LOG_APP_TAG = "ChuckerView";
-
-    private LinearLayout runcBtn;
-    private TextView runcBtnText;
-    private EditText editURL;
-    private SeekBar botsSeek;
-    private TextView botsCount;
-    private Handler mNetworkHandler;
-    private HandlerThread mNetworkHandlerThread;
-
-    private static NetProxy g_pNetProxy = null;
-
-    private boolean bBotsActive = false;
-    private int iBotsCount = 0;
-    private boolean bThreadLocked = false;
-
-    // bot pool
-    static WebConnect[] webConnects = new WebConnect [27000];
-    private int iTotalWebConnections = 0;
 
     // proxy's
     private String[] proxyList = new String[] {
@@ -947,9 +923,35 @@ public class MainActivity extends AppCompatActivity {
             "80.64.80.233:8018"
     };
 
+    // Used to load the 'chuckerview' library on application startup.
+    static {
+        System.loadLibrary("chuckerview");
+        System.loadLibrary("chuckerpatch");
+    }
+
+    private String LOG_APP_TAG = "ChuckerView";
+
+    private LinearLayout runcBtn;
+    private TextView runcBtnText;
+    private EditText editURL;
+    private SeekBar botsSeek;
+    private TextView botsCount;
+
+    private boolean bBotsActive = false;
     private int iCustomProxy = 0;
     private static boolean bUseProxy = true;
     private final Random rand = new Random();
+    private Switch proxy_switch;
+
+    @SuppressWarnings("unused")
+    public final int TYPE_REQUEST_GET = 1;
+    @SuppressWarnings("unused")
+    public final int TYPE_REQUEST_POST = 2;
+    @SuppressWarnings("unused")
+    public final int TYPE_REQUEST_GP = 3;
+
+    @SuppressWarnings("unused")
+    private int iBotsCount = 0;
 
     public int getCurrentProxyID() {
         return this.iCustomProxy;
@@ -973,8 +975,7 @@ public class MainActivity extends AppCompatActivity {
         this.iCustomProxy = id;
     }
 
-    public String getCustomProxyAddress()
-    {
+    public String getCustomProxyAddress() {
         return this.proxyList[this.getCurrentProxyID()];
     }
 
@@ -996,31 +997,16 @@ public class MainActivity extends AppCompatActivity {
         return Integer.parseInt(separated[1]);
     }
 
-    public boolean executeBots()
+    public void updateBotsSeek(int p)
     {
-        return true;
+        botsCount.setText("" + p);
+        iBotsCount = p;
     }
 
-    public void destroyAllWebConnects()
-    {
-        for(int i = 0; i < iTotalWebConnections; i++)
-        {
-            if(webConnects[i] == null) continue;
-            webConnects[i].disconnect();;
-            webConnects[i] = null;
-        }
-
-        iTotalWebConnections = 0;
+    public int getBotsCount() {
+        return iBotsCount;
     }
 
-    public void startBotProcessing()
-    {
-        System.out.println(LOG_APP_TAG + " Bot thread updated!");
-
-        new Thread(() -> {
-            runOnUiThread(this::executeBots);
-        }).start();
-    }
     @SuppressLint("StaticFieldLeak")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1030,27 +1016,24 @@ public class MainActivity extends AppCompatActivity {
         // native stuff
         InitApp(0x95);
 
-        // NET HANDLER
-        this.mNetworkHandlerThread = new HandlerThread("NetworkHandler");
-        this.mNetworkHandlerThread.start();
-        this.mNetworkHandler = new Handler(this.mNetworkHandlerThread.getLooper());
-
         // views
         runcBtn = (LinearLayout) findViewById(R.id.run_cbtn);
         runcBtnText = (TextView) findViewById(R.id.run_cbtn_title);
         editURL = (EditText) findViewById(R.id.url_edit);
-        Switch proxy_switch = (Switch) findViewById(R.id.switch_proxy);
+        proxy_switch = (Switch) findViewById(R.id.switch_proxy);
         botsSeek = (SeekBar) findViewById(R.id.bots_count_seekbar);
         botsCount = (TextView) findViewById(R.id.bots_count);
-        botsSeek.setProgress(10);
-        iBotsCount = 10;
 
+        // update bots count
+        botsSeek.setProgress(10);
+        updateBotsSeek(botsSeek.getProgress());
+
+        // events
         botsSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener()
         {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
             {
-                botsCount.setText("" + progress);
-                iBotsCount = progress;
+                updateBotsSeek(progress);
             }
 
             public void onStartTrackingTouch(SeekBar arg0) {
@@ -1062,88 +1045,49 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // switch settings
         proxy_switch.setChecked(true); // default
 
         // state button
         runcBtn.setOnClickListener(view ->
         {
-            boolean b = proxy_switch.isChecked();
+            setUseProxy(proxy_switch.isChecked());
+            bBotsActive = !bBotsActive; // toggle var
 
-            bBotsActive = !bBotsActive;
             runcBtnText.setText(bBotsActive ? "Stop" : "Run");
+
             System.out.println(LOG_APP_TAG + " " + (bBotsActive ? "Bot Started!" : "Bot Stopped!"));
 
-            if(bBotsActive)
+            int iErrorsCo = 0;
+            int iMaxErrors = 5;
+            int i = 0;
+
+            while(i != getBotsCount() && bBotsActive)
             {
-                setUseProxy(b);
                 setCustomProxyByID(getCurrentProxyID() + 1); // update proxy
+                // http request
+                if(doExecuteHTTPRequest(editURL.getText().toString(), TYPE_REQUEST_GP,
+                        isUseProxy(),
+                        getCustomProxyAddressOnlyIP(),
+                        getCustomProxyAddressOnlyPort()))
+                {
+                    i++;
+                }
+                else
+                {
+                    if(iErrorsCo >= iMaxErrors) {
+                        System.out.println(LOG_APP_TAG + " " + "More errors due http request!");
+                        iErrorsCo = 0;
+                        break;
+                    }
 
-                Proxy newProxy1 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getCustomProxyAddressOnlyIP(), getCustomProxyAddressOnlyPort()));
-                Proxy newProxy2 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getCustomProxyAddressOnlyIP(), getCustomProxyAddressOnlyPort()));
-                Proxy newProxy3 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getCustomProxyAddressOnlyIP(), getCustomProxyAddressOnlyPort()));
-                Proxy newProxy4 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getCustomProxyAddressOnlyIP(), getCustomProxyAddressOnlyPort()));
-                Proxy newProxy5 = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getCustomProxyAddressOnlyIP(), getCustomProxyAddressOnlyPort()));
-
-                try {
-                    new AsyncTask<Void, String, String>() {
-                        @Override
-                        protected String doInBackground(Void... voids) {
-                            String s = "";
-                            try {
-                                s = doGet(newProxy1, "https://www.youtube.com/watch?v=M6oxMWmqKKw");
-                                s = doGet(newProxy2, "https://www.youtube.com/watch?v=M6oxMWmqKKw");
-                                s = doGet(newProxy3, "https://www.youtube.com/watch?v=M6oxMWmqKKw");
-                                s = doGet(newProxy4, "https://www.youtube.com/watch?v=M6oxMWmqKKw");
-                                s = doGet(newProxy5, "https://www.youtube.com/watch?v=M6oxMWmqKKw");
-
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                            return s;
-                        }
-
-                        @Override
-                        protected void onPostExecute(final String result) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    System.out.println(result);
-                                    //tvRez.setText(result);
-                                }
-                            });
-                        }
-                    }.execute();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println(LOG_APP_TAG + " " + "Error due http request..");
+                    iErrorsCo++;
                 }
             }
         });
     }
 
-    public static String doGet(Proxy proxy, String url)
-            throws Exception {
-
-        URL obj = new URL(url);
-        HttpURLConnection connection = (HttpURLConnection) obj.openConnection(proxy);
-
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0" );
-        connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.connect();
-
-        /*BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        String inputLine;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputLine = bufferedReader.readLine()) != null) {
-            response.append(inputLine);
-        }
-        bufferedReader.close();
-
-        System.out.println("Response string: " + response.toString());*/
-        return ""; //response.toString();
-    }
-
     public native void InitApp(int handle);
+    public native boolean doExecuteHTTPRequest(String url, int type, boolean bUseProxy, String host, int port);
 }

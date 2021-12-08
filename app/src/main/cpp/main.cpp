@@ -1,9 +1,6 @@
 #include "main.h"
 #include "JavaWrap.h"
 
-#define INIT_HANDLE 0x95
-#define INIT_SECTOR 0x98
-
 void InitAppHandle(JNIEnv* env, jobject obj, jint handle)
 {
     switch((int)handle)
