@@ -1,3 +1,3 @@
 # chucker-view
 
-app\build\outputs\apk\release
+Bot library: https://github.com/Codeesar/chuckerview-jni
